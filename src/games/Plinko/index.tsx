@@ -92,15 +92,11 @@ export default function Plinko() {
     }
 
     const shouldForceX15 =
+      degen &&
       wagerHistory.current.length === 3 &&
       wagerHistory.current[0] === 1 &&
       wagerHistory.current[1] === 5 &&
       wagerHistory.current[2] === 10
-
-      // Генерируем случайный множитель
-      const multipliers = [0, 0, 2, 10, 15]
-      const chances =     [12, 10, 8, 5, 2]  // в %
-
       const pick = (arr, weights) => {
         const total = weights.reduce((a, b) => a + b, 0)
         const rnd = Math.random() * total
@@ -111,10 +107,14 @@ export default function Plinko() {
         }
         return arr[arr.length - 1]
       }
+      // Генерируем случайный множитель
+      const multipliersList = degen ? [0, 0, 2, 10, 15] : [0.5, 0.5, 1.5, 3, 6]
+      const chancesList    = degen ? [12, 10, 8, 5, 2]   : [15, 10, 5, 2, 1]
+      const multiplier = shouldForceX15
+      ? 15
+      : pick(multipliersList, chancesList)
 
-      // Каждое 3-е нажатие — гарантированно 15
-        const multiplier = shouldForceX15 ? 15 : pick(multipliers, chances)
-      const payout = wager * multiplier
+
 
       // Сохраняем выигрыш для начисления после попадания
       winningMultiplierRef.current = multiplier
@@ -274,8 +274,14 @@ export default function Plinko() {
                 <h2>Balance: {balance.toFixed(2)}</h2>
                 <input
                     type="number"
-                    value={wager}
-                    onChange={(e) => setWager(Number(e.target.value))}
+                    value={wager === 0 ? '' : wager}
+                    onChange={(e) => {
+                        const value = Number(e.target.value)
+                        if (!isNaN(value)) {
+                            setWager(value)
+                        }
+                    }}
+                    placeholder="Enter wager"
                 />
                 <GambaUi.Button onClick={play}>
                     Play
