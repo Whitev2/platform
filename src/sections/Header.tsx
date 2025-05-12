@@ -149,7 +149,7 @@ export default function Header() {
         {/*    </GambaUi.Button>*/}
         {/*  )}*/}
 
-          <TokenSelect />
+          {/*<TokenSelect />*/}
           {/*<UserButton />*/}
         </div>
       </StyledHeader>

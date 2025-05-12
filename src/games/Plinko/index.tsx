@@ -247,24 +247,14 @@ export default function Plinko() {
         />
       </GambaUi.Portal>
         <GambaUi.Portal target="controls">
-            <GambaUi.WagerInput value={wager} onChange={setWager}/>
+
             <div>Degen:</div>
             <GambaUi.Switch
                 disabled={gamba.isPlaying}
                 checked={degen}
                 onChange={setDegen}
             />
-            {window.location.origin.includes('localhost') && (
-                <>
-                    <GambaUi.Switch checked={debug} onChange={setDebug}/>
-                    <GambaUi.Button onClick={() => plinko.single()}>
-                        Test
-                    </GambaUi.Button>
-                    <GambaUi.Button onClick={() => plinko.runAll()}>
-                        Simulate
-                    </GambaUi.Button>
-                </>
-            )}
+
 
             <div>
                 <h2>Balance: {balance.toFixed(2)}</h2>
@@ -273,9 +263,12 @@ export default function Plinko() {
                     value={wager}
                     onChange={(e) => setWager(Number(e.target.value))}
                 />
-                <button onClick={play}>Play</button>
+                <GambaUi.Button onClick={play}>
+                    Play
+                </GambaUi.Button>
+
             </div>
         </GambaUi.Portal>
     </>
   )
-  }
+}
