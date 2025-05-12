@@ -16,6 +16,7 @@ import BUMP from './bump.mp3'
 import FALL from './fall.mp3'
 import WIN from './win.mp3'
 
+
 function usePlinko(props: PlinkoProps, deps: React.DependencyList) {
   const [plinko, set] = React.useState<PlinkoGame>(null!)
 
@@ -73,6 +74,7 @@ export default function Plinko() {
         }
       },
     }, [rows, multipliers, wager])
+    const wagerHistory = React.useRef<number[]>([])
 
       const play = () => {
       if (balance < wager) {
@@ -82,6 +84,18 @@ export default function Plinko() {
 
       // Увеличиваем счётчик запусков
       playCount.current++
+      wagerHistory.current.push(wager)
+
+    // Ограничиваем до последних 3 ставок
+    if (wagerHistory.current.length > 3) {
+      wagerHistory.current.shift()
+    }
+
+    const shouldForceX15 =
+      wagerHistory.current.length === 3 &&
+      wagerHistory.current[0] === 1 &&
+      wagerHistory.current[1] === 5 &&
+      wagerHistory.current[2] === 10
 
       // Генерируем случайный множитель
       const multipliers = [0, 0, 2, 10, 15]
@@ -99,7 +113,7 @@ export default function Plinko() {
       }
 
       // Каждое 3-е нажатие — гарантированно 15
-      const multiplier = playCount.current % 3 === 0 ? 15 : pick(multipliers, chances)
+        const multiplier = shouldForceX15 ? 15 : pick(multipliers, chances)
       const payout = wager * multiplier
 
       // Сохраняем выигрыш для начисления после попадания
