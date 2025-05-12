@@ -33,7 +33,7 @@ const BET = [.5, .5, .5, .5, .5, .5, .5, .5, .5, .5, .5, .5, .5, .5, .5, .5, .5,
 
 export default function Plinko() {
     const [balance, setBalance] = React.useState(1000) // Стартовый баланс
-  const [wager, setWager] = React.useState(10)       // Ставка
+  const [wager, setWager] = React.useState(100)       // Ставка
   const game = GambaUi.useGame()
   const gamba = useGamba()
   const [debug, setDebug] = React.useState(false)
@@ -267,13 +267,13 @@ export default function Plinko() {
             )}
 
             <div>
-                <h2>Баланс: {balance.toFixed(2)}</h2>
+                <h2>Balance: {balance.toFixed(2)}</h2>
                 <input
                     type="number"
                     value={wager}
                     onChange={(e) => setWager(Number(e.target.value))}
                 />
-                <button onClick={play}>Играть</button>
+                <button onClick={play}>Play</button>
             </div>
         </GambaUi.Portal>
     </>

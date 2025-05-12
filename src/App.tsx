@@ -80,7 +80,7 @@ export default function App() {
         {/*<h2 style={{ textAlign: 'center' }}>Recent Plays</h2>*/}
         {/*<RecentPlays />*/}
       </MainWrapper>
-      {ENABLE_TROLLBOX && <TrollBox />}
+      {/*{ENABLE_TROLLBOX && <TrollBox />}*/}
     </>
   )
 }
