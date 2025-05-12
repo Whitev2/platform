@@ -199,29 +199,34 @@ export default function Plinko() {
           }}
         />
       </GambaUi.Portal>
-      <GambaUi.Portal target="controls">
-        <GambaUi.WagerInput value={wager} onChange={setWager} />
-        <div>Degen:</div>
-        <GambaUi.Switch
-          disabled={gamba.isPlaying}
-          checked={degen}
-          onChange={setDegen}
-        />
-        {window.location.origin.includes('localhost') && (
-          <>
-            <GambaUi.Switch checked={debug} onChange={setDebug}  />
-            <GambaUi.Button onClick={() => plinko.single()}>
-              Test
-            </GambaUi.Button>
-            <GambaUi.Button onClick={() => plinko.runAll()}>
-              Simulate
-            </GambaUi.Button>
-          </>
-        )}
-        <GambaUi.PlayButton onClick={() => play()}>
-          Play
-        </GambaUi.PlayButton>
-      </GambaUi.Portal>
+        <GambaUi.Portal target="controls">
+            <GambaUi.WagerInput value={wager} onChange={setWager}/>
+            <div>Degen:</div>
+            <GambaUi.Switch
+                disabled={gamba.isPlaying}
+                checked={degen}
+                onChange={setDegen}
+            />
+            {window.location.origin.includes('localhost') && (
+                <>
+                    <GambaUi.Switch checked={debug} onChange={setDebug}/>
+                    <GambaUi.Button onClick={() => plinko.single()}>
+                        Test
+                    </GambaUi.Button>
+                    <GambaUi.Button onClick={() => plinko.runAll()}>
+                        Simulate
+                    </GambaUi.Button>
+                </>
+            )}
+            <div style={{display: 'flex'}}>
+                <GambaUi.PlayButton
+                    style={{marginLeft: 'auto'}}
+                    onClick={() => play()}
+                >
+                    Play
+                </GambaUi.PlayButton>
+            </div>
+        </GambaUi.Portal>
     </>
   )
 }

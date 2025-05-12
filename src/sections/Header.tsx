@@ -118,7 +118,7 @@ export default function Header() {
       <StyledHeader>
         <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
           <Logo to="/">
-            <img alt="Gamba logo" src="/logo.svg" />
+            {/*<img alt="Gamba logo" src="/logo.svg" />*/}
           </Logo>
         </div>
 
@@ -142,15 +142,15 @@ export default function Header() {
             </Bonus>
           )}
 
-          {/* Leaderboard shows only on desktop */}
-          {isDesktop && (
-            <GambaUi.Button onClick={() => setShowLeaderboard(true)}>
-              Leaderboard
-            </GambaUi.Button>
-          )}
+        {/*  /!* Leaderboard shows only on desktop *!/*/}
+        {/*  {isDesktop && (*/}
+        {/*    <GambaUi.Button onClick={() => setShowLeaderboard(true)}>*/}
+        {/*      Leaderboard*/}
+        {/*    </GambaUi.Button>*/}
+        {/*  )}*/}
 
           <TokenSelect />
-          <UserButton />
+          {/*<UserButton />*/}
         </div>
       </StyledHeader>
     </>
