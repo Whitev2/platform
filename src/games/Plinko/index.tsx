@@ -80,6 +80,12 @@ export default function Plinko() {
     }
 
     const result = await game.result()
+
+    console.log('💰 Результат игры:', {
+      wager: result.wager,
+      payout: result.payout,
+      multiplier: result.multiplier,
+    })
     plinko.reset()
     plinko.run(result.multiplier)
   }
