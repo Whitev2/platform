@@ -1,7 +1,16 @@
+import React from 'react'
 import { GambaUi, useSound, useWagerInput } from 'gamba-react-ui-v2'
 import { useGamba } from 'gamba-react-v2'
-import React from 'react'
-import { PEG_RADIUS, PLINKO_RAIUS, Plinko as PlinkoGame, PlinkoProps, barrierHeight, barrierWidth, bucketHeight } from './game'
+import {
+  PEG_RADIUS,
+  PLINKO_RAIUS,
+  Plinko as PlinkoGame,
+  PlinkoProps,
+  barrierHeight,
+  barrierWidth,
+  bucketHeight,
+} from './game'
+import Matter from 'matter-js'
 
 import BUMP from './bump.mp3'
 import FALL from './fall.mp3'
@@ -10,14 +19,11 @@ import WIN from './win.mp3'
 function usePlinko(props: PlinkoProps, deps: React.DependencyList) {
   const [plinko, set] = React.useState<PlinkoGame>(null!)
 
-  React.useEffect(
-    () => {
-      const p = new PlinkoGame(props)
-      set(p)
-      return () => p.cleanup()
-    },
-    deps,
-  )
+  React.useEffect(() => {
+    const p = new PlinkoGame(props)
+    set(p)
+    return () => p.cleanup()
+  }, deps)
 
   return plinko
 }
@@ -31,18 +37,14 @@ export default function Plinko() {
   const [wager, setWager] = useWagerInput()
   const [debug, setDebug] = React.useState(false)
   const [degen, setDegen] = React.useState(false)
-  const sounds = useSound({
-    bump: BUMP,
-    win: WIN,
-    fall: FALL,
-  })
+  const playCount = React.useRef(0)
 
+  const sounds = useSound({ bump: BUMP, win: WIN, fall: FALL })
   const pegAnimations = React.useRef<Record<number, number>>({})
   const bucketAnimations = React.useRef<Record<number, number>>({})
 
   const bet = degen ? DEGEN_BET : BET
   const rows = degen ? 12 : 14
-
   const multipliers = React.useMemo(() => Array.from(new Set(bet)), [bet])
 
   const plinko = usePlinko({
@@ -64,7 +66,19 @@ export default function Plinko() {
   }, [rows, multipliers])
 
   const play = async () => {
+    playCount.current++
     await game.play({ wager, bet })
+
+    // Каждый 3-й запуск — гарантированное попадание в x15
+    if (playCount.current % 3 === 0) {
+      try {
+        plinko.runForced(15)
+        return
+      } catch (err) {
+        console.warn('Fallback to random result:', err)
+      }
+    }
+
     const result = await game.result()
     plinko.reset()
     plinko.run(result.multiplier)

@@ -38,6 +38,7 @@ interface SimulationResult {
 export class Plinko {
   width = WIDTH
   height = HEIGHT
+  private framesPerTick: number = 5 // Увеличь значение для ускорения
 
   private engine = Matter.Engine.create({
     gravity: { y: GRAVITY },
@@ -270,6 +271,29 @@ export class Plinko {
     Matter.Runner.run(this.runner, this.engine)
   }
 
+    runForced(multiplier: number) {
+    const bucket = this.bucketComposite.bodies.find(
+      (b) => b.label === 'Bucket' && b.plugin.bucketMultiplier === multiplier,
+    )
+    if (!bucket) throw new Error(`Bucket with multiplier ${multiplier} not found`)
+
+    const candidates = this.simulate(bucket.plugin.bucketIndex)
+    if (!candidates.length) throw new Error(`No candidates found for multiplier ${multiplier}`)
+
+    const chosen = Matter.Common.choose(candidates)
+
+    this.reset()
+    this.currentPath = chosen.path
+    this.currentFrame = 0
+    this.replayCollisions = chosen.collisions.filter(
+      ({ event }) => event.plinko?.plugin.startPositionIndex === chosen.plinkoIndex,
+    )
+    const ball = this.makePlinko(this.startPositions[chosen.plinkoIndex], chosen.plinkoIndex)
+    this.replayBall = ball
+    Matter.Composite.add(this.ballComposite, ball)
+    this.startReplayAnimation()
+  }
+
   run(desiredMultiplier: number) {
     Matter.Events.off(this.engine, 'collisionStart', this.collisionHandler)
     const bucket = Matter.Common.choose(
@@ -305,22 +329,28 @@ export class Plinko {
     if (this.animationId !== null) {
       cancelAnimationFrame(this.animationId)
     }
+
     const animate = () => {
       if (!this.currentPath || !this.replayBall) return
-      if (this.currentFrame >= this.currentPath.length) {
-        return
+
+      // Прокручиваем сразу несколько кадров
+      for (let i = 0; i < this.framesPerTick && this.currentFrame < this.currentPath.length; i++) {
+        const pos = this.currentPath[this.currentFrame]
+        Matter.Body.setPosition(this.replayBall, { x: pos.x, y: pos.y })
+
+        const frameCollisions = this.replayCollisions.filter(c => c.frame === this.currentFrame)
+        frameCollisions.forEach(({ event }) => {
+          this.props.onContact(event)
+        })
+
+        this.currentFrame++
       }
-      const pos = this.currentPath[this.currentFrame]
-      Matter.Body.setPosition(this.replayBall, { x: pos.x, y: pos.y })
 
-      const frameCollisions = this.replayCollisions.filter(c => c.frame === this.currentFrame)
-      frameCollisions.forEach(({event}) => {
-        this.props.onContact(event)
-      })
-
-      this.currentFrame++
-      this.animationId = requestAnimationFrame(animate)
+      if (this.currentFrame < this.currentPath.length) {
+        this.animationId = requestAnimationFrame(animate)
+      }
     }
+
     this.animationId = requestAnimationFrame(animate)
   }
 }
