@@ -10,7 +10,7 @@ import {
   barrierWidth,
   bucketHeight,
 } from './game'
-import Matter from 'matter-js'
+
 
 import BUMP from './bump.mp3'
 import FALL from './fall.mp3'
@@ -32,13 +32,15 @@ const DEGEN_BET = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 const BET = [.5, .5, .5, .5, .5, .5, .5, .5, .5, .5, .5, .5, .5, .5, .5, .5, .5, .5, .5, .5, .5, .5, .5, .5, .5, .5, .5, .5, .5, .5, .5, .5, .5, .5, .5, .5, .5, .5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 3, 3, 3, 3, 3, 3, 3, 6]
 
 export default function Plinko() {
+    const [balance, setBalance] = React.useState(1000) // Стартовый баланс
+  const [wager, setWager] = React.useState(10)       // Ставка
   const game = GambaUi.useGame()
   const gamba = useGamba()
-  const [wager, setWager] = useWagerInput()
   const [debug, setDebug] = React.useState(false)
   const [degen, setDegen] = React.useState(false)
   const playCount = React.useRef(0)
-
+  const winningMultiplierRef = React.useRef<number>(0)
+  const hasPaidOutRef = React.useRef(false) // Чтобы избежать двойной выплаты
   const sounds = useSound({ bump: BUMP, win: WIN, fall: FALL })
   const pegAnimations = React.useRef<Record<number, number>>({})
   const bucketAnimations = React.useRef<Record<number, number>>({})
@@ -47,49 +49,74 @@ export default function Plinko() {
   const rows = degen ? 12 : 14
   const multipliers = React.useMemo(() => Array.from(new Set(bet)), [bet])
 
-  const plinko = usePlinko({
-    rows,
-    multipliers,
-    onContact(contact) {
-      if (contact.peg && contact.plinko) {
-        pegAnimations.current[contact.peg.plugin.pegIndex] = 1
-        sounds.play('bump', { playbackRate: 1 + Math.random() * .05 })
-      }
-      if (contact.barrier && contact.plinko) {
-        sounds.play('bump', { playbackRate: .5 + Math.random() * .05 })
-      }
-      if (contact.bucket && contact.plinko) {
-        bucketAnimations.current[contact.bucket.plugin.bucketIndex] = 1
-        sounds.play(contact.bucket.plugin.bucketMultiplier >= 1 ? 'win' : 'fall')
-      }
-    },
-  }, [rows, multipliers])
+    const plinko = usePlinko({
+      rows,
+      multipliers,
+      wager,
+      setBalance,
+      onContact(contact) {
+        if (contact.peg && contact.plinko) {
+          pegAnimations.current[contact.peg.plugin.pegIndex] = 1
+          sounds.play('bump', { playbackRate: 1 + Math.random() * .05 })
+        }
+        if (contact.barrier && contact.plinko) {
+          sounds.play('bump', { playbackRate: .5 + Math.random() * .05 })
+        }
+        if (contact.bucket && contact.plinko) {
+          bucketAnimations.current[contact.bucket.plugin.bucketIndex] = 1
+          sounds.play(contact.bucket.plugin.bucketMultiplier >= 1 ? 'win' : 'fall')
 
-  const play = async () => {
-    playCount.current++
-    await game.play({ wager, bet })
+          if (!hasPaidOutRef.current && winningMultiplierRef.current > 0) {
+            hasPaidOutRef.current = true
+            setBalance(prev => prev + wager * winningMultiplierRef.current)
+          }
+        }
+      },
+    }, [rows, multipliers, wager])
 
-    // Каждый 3-й запуск — гарантированное попадание в x15
-    if (playCount.current % 3 === 0) {
-      try {
-        plinko.runForced(15)
+      const play = () => {
+      if (balance < wager) {
+        alert('Недостаточно средств')
         return
-      } catch (err) {
-        console.warn('Fallback to random result:', err)
       }
+
+      // Увеличиваем счётчик запусков
+      playCount.current++
+
+      // Генерируем случайный множитель
+      const multipliers = [0, 0, 2, 10, 15]
+      const chances =     [12, 10, 8, 5, 2]  // в %
+
+      const pick = (arr, weights) => {
+        const total = weights.reduce((a, b) => a + b, 0)
+        const rnd = Math.random() * total
+        let acc = 0
+        for (let i = 0; i < arr.length; i++) {
+          acc += weights[i]
+          if (rnd < acc) return arr[i]
+        }
+        return arr[arr.length - 1]
+      }
+
+      // Каждое 3-е нажатие — гарантированно 15
+      const multiplier = playCount.current % 3 === 0 ? 15 : pick(multipliers, chances)
+      const payout = wager * multiplier
+
+      // Сохраняем выигрыш для начисления после попадания
+      winningMultiplierRef.current = multiplier
+      hasPaidOutRef.current = false
+
+      // Снимаем ставку
+      setBalance(balance - wager)
+
+      // Запускаем игру
+      setTimeout(() => {
+        plinko.reset()
+        setTimeout(() => {
+          plinko.runForced(multiplier)
+        }, 50)
+      }, 0)
     }
-
-    const result = await game.result()
-
-    console.log('💰 Результат игры:', {
-      wager: result.wager,
-      payout: result.payout,
-      multiplier: result.multiplier,
-    })
-    plinko.reset()
-    plinko.run(result.multiplier)
-  }
-
   return (
     <>
       <GambaUi.Portal target="screen">
@@ -238,15 +265,17 @@ export default function Plinko() {
                     </GambaUi.Button>
                 </>
             )}
-            <div style={{display: 'flex'}}>
-                <GambaUi.PlayButton
-                    style={{marginLeft: 'auto'}}
-                    onClick={() => play()}
-                >
-                    Play
-                </GambaUi.PlayButton>
+
+            <div>
+                <h2>Баланс: {balance.toFixed(2)}</h2>
+                <input
+                    type="number"
+                    value={wager}
+                    onChange={(e) => setWager(Number(e.target.value))}
+                />
+                <button onClick={play}>Играть</button>
             </div>
         </GambaUi.Portal>
     </>
   )
-}
+  }

@@ -1,5 +1,6 @@
 import Matter from 'matter-js'
 
+
 const WIDTH = 700
 const HEIGHT = 700
 
@@ -39,7 +40,6 @@ export class Plinko {
   width = WIDTH
   height = HEIGHT
   private framesPerTick: number = 5 // Увеличь значение для ускорения
-
   private engine = Matter.Engine.create({
     gravity: { y: GRAVITY },
     timing: { timeScale: 1 },
@@ -259,41 +259,58 @@ export class Plinko {
     this.props.onContact && this.props.onContact(contactEvent)
   }
 
-  runAll() {
-    Matter.Events.off(this.engine, 'collisionStart', this.collisionHandler)
-    Matter.Runner.stop(this.runner)
-    Matter.Composite.clear(this.ballComposite, false)
-    Matter.Events.on(this.engine, 'collisionStart', this.collisionHandler)
-    Matter.Composite.add(
-      this.ballComposite,
-      this.makePlinkos(),
-    )
-    Matter.Runner.run(this.runner, this.engine)
-  }
+    runAll() {
+      Matter.Events.off(this.engine, 'collisionStart', this.collisionHandler)
+      Matter.Runner.stop(this.runner)
+      Matter.Composite.clear(this.ballComposite, false)
+      Matter.Events.on(this.engine, 'collisionStart', this.collisionHandler)
+      Matter.Composite.add(
+        this.ballComposite,
+        this.makePlinkos(),
+      )
+      Matter.Runner.run(this.runner, this.engine)
+    }
 
-    runForced(multiplier: number) {
-    const bucket = this.bucketComposite.bodies.find(
+      runForced(multiplier: number) {
+    const matchingBuckets = this.bucketComposite.bodies.filter(
       (b) => b.label === 'Bucket' && b.plugin.bucketMultiplier === multiplier,
     )
-    if (!bucket) throw new Error(`Bucket with multiplier ${multiplier} not found`)
+
+    if (!matchingBuckets.length) {
+      throw new Error(`Bucket x${multiplier} не найден`)
+    }
+
+    // Выбираем случайную корзину с нужным множителем
+    const bucket = Matter.Common.choose(matchingBuckets)
+
+    if (!bucket) throw new Error(`Bucket x${multiplier} не найден`)
 
     const candidates = this.simulate(bucket.plugin.bucketIndex)
-    if (!candidates.length) throw new Error(`No candidates found for multiplier ${multiplier}`)
+
+    if (!candidates.length) {
+      console.warn(`❌ Нет симуляций для множителя x${multiplier}`)
+      return
+    }
 
     const chosen = Matter.Common.choose(candidates)
 
-    this.reset()
+    if (!chosen.path.length) {
+      console.warn('❌ Путь пустой, анимация не будет запущена')
+      return
+    }
+
     this.currentPath = chosen.path
     this.currentFrame = 0
     this.replayCollisions = chosen.collisions.filter(
       ({ event }) => event.plinko?.plugin.startPositionIndex === chosen.plinkoIndex,
     )
+
     const ball = this.makePlinko(this.startPositions[chosen.plinkoIndex], chosen.plinkoIndex)
     this.replayBall = ball
     Matter.Composite.add(this.ballComposite, ball)
+
     this.startReplayAnimation()
   }
-
   run(desiredMultiplier: number) {
     Matter.Events.off(this.engine, 'collisionStart', this.collisionHandler)
     const bucket = Matter.Common.choose(
